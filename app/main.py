@@ -1,5 +1,6 @@
 import socket
 import threading
+import sys
 
 def handles_request(client, addr):
     # print("inside handles request")
@@ -20,8 +21,8 @@ def parse_request(data):
 
     try:
         data_list: list[str] = data.decode().split("\r\n")
-        for d in data_list:
-            print("asdas:   " + d)
+        # for d in data_list:
+        #     print("asdas:   " + d)
         request_data = data[0]
         # path = data_list[0].split(" ")[1]
         method, target = data_list[0].split(" ")[:2]
@@ -41,6 +42,17 @@ def parse_request(data):
             content = data_list[2].split(": ")[1]
             # print("CCCC: "+content)
             response: bytes = f"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: {len(content)}\r\n\r\n{content}".encode()
+        elif target.startswith("/files/"):
+            file_location = sys.argv[2]
+            file_name =  target[7:]
+            # print("FILE LOCATION: " + file_location + "XXXXXXX   FILE NAME: " + file_name)
+            try:
+                with open(file_location + file_name, "r") as f:
+                    body = f.read()
+                response = f"HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: {len(body)}\r\n\r\n{body}".encode()
+            except Exception as e:
+                response = f"HTTP/1.1 404 Not Found\r\n\r\n".encode()
+
         else:
             response: bytes = "HTTP/1.1 404 Not Found\r\n\r\n".encode()
 
