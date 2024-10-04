@@ -31,6 +31,7 @@ def parse_request(data):
             response: bytes = \
                 f"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: {len(content)}\r\n\r\n{content}".encode()
         elif target.startswith("/user-agent"):
+            # print("before content ")
             content = data[3].split(": ")[1]
             # print("CCCC: "+content)
             response: bytes = f"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: {len(content)}\r\n\r\n{content}".encode()
