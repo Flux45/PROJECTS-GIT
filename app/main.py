@@ -1,7 +1,7 @@
 import socket
 import threading
 
-def handles_request(client):
+def handles_request(client, addr):
     # print("inside handles request")
     try:
         data = client.recv(1024)
