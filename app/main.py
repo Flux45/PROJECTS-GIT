@@ -24,7 +24,8 @@ def parse_request(data):
             response: bytes = "HTTP/1.1 200 OK\r\n\r\n".encode()
 
         elif target.startswith("/echo"):
-            content = target.split("/")[1]
+            content = target.split("/")[2]
+            print(content)
             response: bytes = \
                 f"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: {len(content)}\r\n\r\n{content}".encode()
         else:
