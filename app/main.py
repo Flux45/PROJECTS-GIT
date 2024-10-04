@@ -20,6 +20,7 @@ def parse_request(data):
     try:
         data: list[str] = data.decode().split("\r\n")
         request_data = data[0]
+        path = data[0].split(" ")[1]
         method, target = request_data.split(" ")[:2]
         # print("TTTTTTTTarget: "+ target)
         # print("datasadas: "+data[3].split(": ")[1])
@@ -30,7 +31,7 @@ def parse_request(data):
             # print(content)
             response: bytes = \
                 f"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: {len(content)}\r\n\r\n{content}".encode()
-        elif target.startswith("/user-agent"):
+        elif path.startswith("/user-agent"):
             # print("before content ")
             content = data[3].split(": ")[1]
             # print("CCCC: "+content)
