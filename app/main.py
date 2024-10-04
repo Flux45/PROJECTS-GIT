@@ -1,7 +1,7 @@
 import socket
 
 def handles_request(client):
-    print("inside handles request")
+    # print("inside handles request")
     try:
         data = client.recv(1024)
         if not data:
@@ -15,19 +15,25 @@ def handles_request(client):
 
 
 def parse_request(data):
-    print("inside parse request")
+    # print("inside parse request")
+
     try:
         data: list[str] = data.decode().split("\r\n")
         request_data = data[0]
         method, target = request_data.split(" ")[:2]
+        # print("TTTTTTTTarget: "+ target)
+        # print("datasadas: "+data[3].split(": ")[1])
         if method == "GET" and target == "/":
             response: bytes = "HTTP/1.1 200 OK\r\n\r\n".encode()
-
         elif target.startswith("/echo"):
             content = target.split("/")[2]
-            print(content)
+            # print(content)
             response: bytes = \
                 f"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: {len(content)}\r\n\r\n{content}".encode()
+        elif target.startswith("/user-agent"):
+            content = data[3].split(": ")[1]
+            # print("CCCC: "+content)
+            response: bytes = f"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: {len(content)}\r\n\r\n{content}".encode()
         else:
             response: bytes = "HTTP/1.1 404 Not Found\r\n\r\n".encode()
 
