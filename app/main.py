@@ -1,4 +1,5 @@
 import socket
+import threading
 
 def handles_request(client):
     # print("inside handles request")
@@ -57,7 +58,9 @@ def main():
         while True:
             client, addr = server_socket.accept()
             print("Server is listening to port 4221...")
-            handles_request(client)
+            thread = threading.Thread(target=handles_request, args=(client, addr))
+            thread.start()
+            # handles_request(client)
     except Exception as e:
         print(f"Server Error: {e}")
     finally:
