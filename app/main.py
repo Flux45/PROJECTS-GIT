@@ -59,10 +59,8 @@ def handle_client(client):
                     contents,
                 )
             if path_type == "POST":
-                return
                 with open(p, "wb") as out:
                     out.write(body_data)
-            return
                 client.send("HTTP/1.1 201 OK\r\n\r\n".encode())
                 client.close()
                 return
