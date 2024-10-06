@@ -104,9 +104,9 @@ def parse_request(data, client):
                 print("going in")
                 body = bodyyy
                 print("BODY   : " + body)
-                with open(file_path_cleaned, "wb") as f:
+                with open(path_cleaned, "wb") as f:
                     print("opened")
-                    f.write(bodyyy.encode())
+                    f.write(name.encode())
                     print("wrote")
                 response = "HTTP/1.1 201 Created\r\n\r\n".encode()
             except Exception as e:
