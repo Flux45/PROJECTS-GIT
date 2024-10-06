@@ -90,7 +90,7 @@ def parse_request(data, client):
                 dir = os.path.join(dir, extract[i])
 
             name =  extract[len(extract)-1]
-            path = f"{FILE_DIR}{file_location}"
+            path = f"{file_location}{FILE_DIR}"
             print(">>>>>>>>>>>>>>>  :" + path[1:])
 
             print("NAME   :   " + name)
