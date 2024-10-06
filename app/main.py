@@ -104,7 +104,7 @@ def parse_request(data, client):
                 print("going in")
                 body = bodyyy
                 print("BODY   : " + body)
-                with open(path_cleaned, "wb") as f:
+                with open(path[1:], "wb") as f:
                     print("opened")
                     f.write(name.encode())
                     print("wrote")
