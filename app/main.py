@@ -61,7 +61,7 @@ def handle_client(client):
             if path_type == "POST":
                 with open(p, "wb") as out:
                     out.write(body_data)
-                client.send("HTTP/1.1 201 OK\r\n\r\n".encode())
+                client.send("HTTP/1.1 201 Created\r\n\r\n".encode())
                 client.close()
                 return
         if "/echo/" in path_path:
