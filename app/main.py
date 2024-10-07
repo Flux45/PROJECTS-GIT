@@ -79,7 +79,7 @@ def handle_client(client):
                     client,
                     "200 OK",
                     {
-                        "Content-Type": headers.get("Content-Type"),
+                        "Content-Type": "text/plain",
                         "Content-Encoding": encoding,
                         "Content-Length": len(echo),
                     },
@@ -90,7 +90,7 @@ def handle_client(client):
                         client,
                         "200 OK",
                         {
-                            "Content-Type": headers.get("Content-Type"),
+                            "Content-Type": "text/plain",
                             "Content-Length": len(echo),
                         },
                         echo.encode(),
