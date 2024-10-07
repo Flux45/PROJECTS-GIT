@@ -73,12 +73,13 @@ def handle_client(client):
         if "/echo/" in path_path:
             echo = path_path[path_path.find("/echo/") + 6 :]
             encoding = headers.get("Accept-Encoding")
+            cont_type = headers.get("Content-Type")
             if encoding != "invalid-encoding":
                 return create_response(
                     client,
                     "200 OK",
                     {
-                        "Content-Type": headers["Content-Type"],
+                        "Content-Type": headers.get("Content-Type"),
                         "Content-Encoding": encoding,
                         "Content-Length": len(echo),
                     },
@@ -89,7 +90,7 @@ def handle_client(client):
                         client,
                         "200 OK",
                         {
-                            "Content-Type": headers["Content-Type"],
+                            "Content-Type": headers.get("Content-Type"),
                             "Content-Length": len(echo),
                         },
                         echo.encode(),
