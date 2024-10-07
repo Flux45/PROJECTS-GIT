@@ -3,7 +3,7 @@ import threading
 import argparse
 import os
 FILE_DIR = ""
-RN = b"\r\n"
+
 def create_headers(headers: dict):
     return "\r\n".join([f"{k}: {v}" for k, v in headers.items()])
 def create_response(client, status: str, headers: dict, body: bytes):
@@ -72,15 +72,26 @@ def handle_client(client):
                 return
         if "/echo/" in path_path:
             echo = path_path[path_path.find("/echo/") + 6 :]
-            encoding = headers.get("Accept-Encoding")
+            encode = headers.get("Accept-Encoding")
+            encoding_list = encode.split(" ")
+            encoding = ""
+            print("!!!!!!!!:   "  + str(encoding_list))
+            i = 0
+            for e in encoding:
+                if encoding == "gzip," :
+                    encoding = "gzip"
+                    print("enkajnf: " + str(encoding))
+                    break
+                else:
+                    encoding = "invalid-encoding"
             cont_type = headers.get("Content-Type")
-            if encoding != "invalid-encoding":
+            if encoding == "gzip":
                 return create_response(
                     client,
                     "200 OK",
                     {
                         "Content-Type": "text/plain",
-                        "Content-Encoding": encoding,
+                        "Content-Encoding": "gzip",
                         "Content-Length": len(echo),
                     },
                     echo.encode(),
