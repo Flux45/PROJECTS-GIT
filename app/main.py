@@ -76,35 +76,24 @@ def handle_client(client):
             encode = headers.get("Accept-Encoding")
             encoding_list = re.split(r"[ ,]+", encode)
 
-            encoding = ""
+            encoding = "invalid-encoding"
             print("!!!!!!!!:   "  + str(encoding_list))
             i = 0
             for e in encoding_list:
                 print(e)
                 if e == "gzip" :
                     encoding = "gzip"
-
-                    return create_response(
-                        client,
-                        "200 OK",
-                        {
-                            "Content-Type": "text/plain",
-                            "Content-Encoding": "gzip",
-                            "Content-Length": len(echo),
-                        },
-                        echo.encode(),
-                    )
-                else:
-                    encoding = "invalid-encoding"
-                    return create_response(
-                        client,
-                        "200 OK",
-                        {
-                            "Content-Type": "text/plain",
-                            "Content-Length": len(echo),
-                        },
-                        echo.encode(),
-                    )
+                    break
+                    # return create_response(
+                    #     client,
+                    #     "200 OK",
+                    #     {
+                    #         "Content-Type": "text/plain",
+                    #         "Content-Encoding": "gzip",
+                    #         "Content-Length": len(echo),
+                    #     },
+                    #     echo.encode(),
+                    # )
             cont_type = headers.get("Content-Type")
             if encoding == "gzip":
                 return create_response(
