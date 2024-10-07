@@ -3,6 +3,7 @@ import threading
 import argparse
 import os
 FILE_DIR = ""
+RN = b"\r\n"
 def create_headers(headers: dict):
     return "\r\n".join([f"{k}: {v}" for k, v in headers.items()])
 def create_response(client, status: str, headers: dict, body: bytes):
@@ -11,7 +12,7 @@ def create_response(client, status: str, headers: dict, body: bytes):
         resp += create_headers(headers) + "\r\n"
     resp += "\r\n"
     if len(body) > 0:
-        resp += body.decode()
+        resp += body
     client.send(resp.encode())
     client.close()
     return
@@ -71,30 +72,28 @@ def handle_client(client):
                 return
         if "/echo/" in path_path:
             echo = path_path[path_path.find("/echo/") + 6 :]
-            extra_headers = []
-            if "Accept-Encoding" in headers:
-                encoding = headers["Accept-Encoding"]
-                if encoding == "gzip":
-                    extra_headers.append(
-                        b"Content-Encoding: %b\r\n" % encoding.encode()
-                    )
-                    return create_response(
+            encoding = headers.get("Accept-Encoding")
+            if encoding != "invalid-encoding":
+                return create_response(
+                    client,
+                    "200 OK",
+                    {
+                        "Content-Type": "application/octet-stream",
+                        "Content-Encoding": encoding,
+                        "Content-Length": len(echo),
+                    },
+                    echo.encode(),
+                )
+            else:
+                return create_response(
                         client,
                         "200 OK",
-                        {"Content-Type": "text/plain","Content-Encoding": headers["Accept-Encoding"] ,"Content-Length": len(echo)},
-                        echo.encode(),
-                    )
-                # elif headers["Accept-Encoding"] == "invalid-encoding":
-                else:
-                    return create_response(
-                        client,
-                        "200 OK",
-                        {"Content-Type": "text/plain",
-                         "Content-Length": len(echo)},
-                        echo.encode(),
-                    )
-
-
+                        {
+                            "Content-Type": "application/octet-stream",
+                            "Content-Length": len(echo),
+                        },
+                        echo,
+                )
 
         if "/user-agent" in path_path:
             return create_response(
