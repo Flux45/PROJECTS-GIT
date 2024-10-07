@@ -96,6 +96,15 @@ def handle_client(client):
                     )
                 else:
                     encoding = "invalid-encoding"
+                    return create_response(
+                        client,
+                        "200 OK",
+                        {
+                            "Content-Type": "text/plain",
+                            "Content-Length": len(echo),
+                        },
+                        echo.encode(),
+                    )
             cont_type = headers.get("Content-Type")
             if encoding == "gzip":
                 return create_response(
