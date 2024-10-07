@@ -78,7 +78,7 @@ def handle_client(client):
                     client,
                     "200 OK",
                     {
-                        "Content-Type": "application/octet-stream",
+                        "Content-Type": headers["Content-Type"],
                         "Content-Encoding": encoding,
                         "Content-Length": len(echo),
                     },
@@ -89,7 +89,7 @@ def handle_client(client):
                         client,
                         "200 OK",
                         {
-                            "Content-Type": "application/octet-stream",
+                            "Content-Type": headers["Content-Type"],
                             "Content-Length": len(echo),
                         },
                         echo.encode(),
