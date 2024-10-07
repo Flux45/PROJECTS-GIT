@@ -23,7 +23,7 @@ def handle_request(conn, addr):
 
     if "gzip" in accept_encoding:
         encoding = "Content-Encoding: gzip\r\n"
-        body = gzip.compress(body)
+        body = gzip.compress(body.encode())
     if path == "/":
         conn.send(b"HTTP/1.1 200 OK\r\n\r\n")
     elif path == "/user-agent":
