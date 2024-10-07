@@ -1,6 +1,11 @@
 from sys import argv
 import socket
 import threading
+import gzip
+
+
+
+
 def handle_request(conn, addr):
     data = conn.recv(1024).decode("utf-8")
     request = data.split("\r\n")
@@ -18,6 +23,7 @@ def handle_request(conn, addr):
 
     if "gzip" in accept_encoding:
         encoding = "Content-Encoding: gzip\r\n"
+        body = gzip.compress(body)
     if path == "/":
         conn.send(b"HTTP/1.1 200 OK\r\n\r\n")
     elif path == "/user-agent":
@@ -51,8 +57,11 @@ def handle_request(conn, addr):
     else:
         conn.send(b"HTTP/1.1 404 Not Found\r\n\r\n")
     conn.close()
+
+
+
 def main():
-    server_socket = socket.create_server(("localhost", 4221), reuse_port=True)
+    server_socket = socket.create_server(("localhost", 4221))
     while True:
         conn, addr = server_socket.accept()  # wait for client
         threading.Thread(target=handle_request, args=(conn, addr)).start()
@@ -67,7 +76,7 @@ if __name__ == "__main__":
 
 
 
-
+# msdkfmlskdmflk
 
 
 
