@@ -26,13 +26,18 @@ def extract_headers(data):
 def handle_client(client):
     global FILE_DIR
     data = client.recv(1024)
+    print("DATA  :   " + data.decode())
     if b"\r\n\r\n" not in data:
         client.close()
         return
     header_data = data[: data.find(b"\r\n\r\n")].decode().split("\r\n")
+    print("HEADER DATA:  " + str(header_data))
     body_data = data[data.find(b"\r\n\r\n") + 4 :]
+    print("BODY DATA:  " + str(body_data))
     headers = extract_headers(header_data[1:])
+    print("HEADERS:  " + str(headers))
     path_data = header_data[0].split(" ")
+    print("PATH DATA:  " + str(path_data))
     path_type = path_data[0]
     path_path = path_data[1]
     path_http = path_data[2]
@@ -66,12 +71,31 @@ def handle_client(client):
                 return
         if "/echo/" in path_path:
             echo = path_path[path_path.find("/echo/") + 6 :]
-            return create_response(
-                client,
-                "200 OK",
-                {"Content-Type": "text/plain", "Content-Length": len(echo)},
-                echo.encode(),
-            )
+            extra_headers = []
+            if "Accept-Encoding" in headers:
+                encoding = headers["Accept-Encoding"]
+                if encoding == "gzip":
+                    extra_headers.append(
+                        b"Content-Encoding: %b\r\n" % encoding.encode()
+                    )
+                    return create_response(
+                        client,
+                        "200 OK",
+                        {"Content-Type": "text/plain","Content-Encoding": headers["Accept-Encoding"] ,"Content-Length": len(echo)},
+                        echo.encode(),
+                    )
+                # elif headers["Accept-Encoding"] == "invalid-encoding":
+                else:
+                    return create_response(
+                        client,
+                        "200 OK",
+                        {"Content-Type": "text/plain",
+                         "Content-Length": len(echo)},
+                        echo.encode(),
+                    )
+
+
+
         if "/user-agent" in path_path:
             return create_response(
                 client,
