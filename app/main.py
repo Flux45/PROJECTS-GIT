@@ -12,7 +12,7 @@ def create_response(client, status: str, headers: dict, body: bytes):
         resp += create_headers(headers) + "\r\n"
     resp += "\r\n"
     if len(body) > 0:
-        resp += body
+        resp += body.decode()
     client.send(resp.encode())
     client.close()
     return
@@ -92,7 +92,7 @@ def handle_client(client):
                             "Content-Type": "application/octet-stream",
                             "Content-Length": len(echo),
                         },
-                        echo,
+                        echo.encode(),
                 )
 
         if "/user-agent" in path_path:
