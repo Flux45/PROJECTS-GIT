@@ -1,145 +1,103 @@
 import socket
-import threading
-import argparse
 import os
-import re
-FILE_DIR = ""
 
-def create_headers(headers: dict):
-    return "\r\n".join([f"{k}: {v}" for k, v in headers.items()])
-def create_response(client, status: str, headers: dict, body: bytes):
-    resp = f"HTTP/1.1 {status}\r\n"
-    if len(headers) > 0:
-        resp += create_headers(headers) + "\r\n"
-    resp += "\r\n"
-    if len(body) > 0:
-        resp += body.decode()
-    client.send(resp.encode())
-    client.close()
-    return
-def extract_headers(data):
-    values = {}
-    for d in data:
-        k = d.split(":")[0]
-        v = d[len(k) + 2 :]
-        v = v.replace("\r\n", "")
-        values[k] = v
-    return values
-def handle_client(client):
-    global FILE_DIR
-    data = client.recv(1024)
-    print("DATA  :   " + data.decode())
-    if b"\r\n\r\n" not in data:
-        client.close()
-        return
-    header_data = data[: data.find(b"\r\n\r\n")].decode().split("\r\n")
-    print("HEADER DATA:  " + str(header_data))
-    body_data = data[data.find(b"\r\n\r\n") + 4 :]
-    print("BODY DATA:  " + str(body_data))
-    headers = extract_headers(header_data[1:])
-    print("HEADERS:  " + str(headers))
-    path_data = header_data[0].split(" ")
-    print("PATH DATA:  " + str(path_data))
-    path_type = path_data[0]
-    path_path = path_data[1]
-    path_http = path_data[2]
-    if path_path == "/":
-        client.send("HTTP/1.1 200 OK\r\n\r\n".encode())
-        client.close()
-    else:
-        if "/files/" in path_path:
-            file = path_path[path_path.find("/files/") + 7 :]
-            p = f"{FILE_DIR}{file}"
-            if path_type == "GET":
-                if not os.path.exists(p):
-                    client.send("HTTP/1.1 404 Not Found\r\n\r\n".encode())
-                    client.close()
-                    return
-                contents = open(p, "rb").read()
-                return create_response(
-                    client,
-                    "200 OK",
-                    {
-                        "Content-Type": "application/octet-stream",
-                        "Content-Length": len(contents),
-                    },
-                    contents,
-                )
-            if path_type == "POST":
-                with open(p, "wb") as out:
-                    out.write(body_data)
-                client.send("HTTP/1.1 201 Created\r\n\r\n".encode())
-                client.close()
-                return
-        if "/echo/" in path_path:
-            echo = path_path[path_path.find("/echo/") + 6 :]
-            encode = headers.get("Accept-Encoding")
-            encoding_list = re.split(r"[ ,]+", encode)
 
-            encoding = "invalid-encoding"
-            print("!!!!!!!!:   "  + str(encoding_list))
-            i = 0
-            for e in encoding_list:
-                print(e)
-                if e == "gzip" :
-                    encoding = "gzip"
-                    break
-                    # return create_response(
-                    #     client,
-                    #     "200 OK",
-                    #     {
-                    #         "Content-Type": "text/plain",
-                    #         "Content-Encoding": "gzip",
-                    #         "Content-Length": len(echo),
-                    #     },
-                    #     echo.encode(),
-                    # )
-            cont_type = headers.get("Content-Type")
-            if encoding == "gzip":
-                return create_response(
-                    client,
-                    "200 OK",
-                    {
-                        "Content-Type": "text/plain",
-                        "Content-Encoding": "gzip",
-                        "Content-Length": len(echo),
-                    },
-                    echo.encode(),
-                )
-            else:
-                return create_response(
-                        client,
-                        "200 OK",
-                        {
-                            "Content-Type": "text/plain",
-                            "Content-Length": len(echo),
-                        },
-                        echo.encode(),
-                )
+def get_text_plain_ok_response(text, extra_headers=None):
+    response = (
+        "HTTP/1.1 200 OK\r\n"
+        "Content-Type: text/plain\r\n"
+        f"Content-Length: {len(text)}\r\n"
+    )
+    if extra_headers:
+        response += (
+            "\r\n".join([f"{key}: {value}" for key, value in extra_headers.items()])
+            + "\r\n"
+        )
+    response += f"\r\n{text}"
+    return response
 
-        if "/user-agent" in path_path:
-            return create_response(
-                client,
-                "200 OK",
-                {
-                    "Content-Type": "text/plain",
-                    "Content-Length": len(headers["User-Agent"]),
-                },
-                headers["User-Agent"].encode(),
-            )
-        client.send("HTTP/1.1 404 Not Found\r\n\r\n".encode())
-        client.close()
-        return
+
+
 def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-d", "--directory")
-    args = parser.parse_args()
-    if "directory" in args:
-        global FILE_DIR
-        FILE_DIR = args.directory
-    server_socket = socket.create_server(("localhost", 4221))  # , reuse_port=True
+    # You can use print statements as follows for debugging, they'll be visible when running tests.
+    print("Logs from your program will appear here!")
+    server_socket = socket.create_server(("localhost", 4221))
+    # Read the flag --directory from the command line if it exists
+    directory_value = None
+    if "--directory" in os.sys.argv:
+        directory_value = os.sys.argv[os.sys.argv.index("--directory") + 1]
+    print(f"Directory value: {directory_value}")
     while True:
-        client, _ = server_socket.accept()  # wait for client
-        threading.Thread(target=handle_client, args=(client,)).start()
+        client_socket, address = server_socket.accept()
+        print(f"Connection from {address}")
+        data = client_socket.recv(1024).decode("utf-8")
+        # Obtain the request line
+        request_line = data.split("\r\n")[0]
+        method = request_line.split(" ")[0]
+        path = request_line.split(" ")[1]
+        # Obtain the headers
+        headers = data.split("\r\n")[1:-2]
+        headers_dict = {
+            header.split(": ")[0].lower(): header.split(": ")[1]
+            for header in headers
+            if header
+        }
+        # Obtain the body
+        body = data.split("\r\n")[-1]
+        print(f"Request line: {request_line}")
+        print(f"Method: {method}")
+        print(f"Path: {path}")
+        print(f"Headers: {headers}")
+        print(f"Headers dict: {headers_dict}")
+        print(f"Body: {body}")
+        print(f"Data: {data}")
+
+        # Default response is 404
+        response = "HTTP/1.1 404 Not Found\r\n\r\n"
+        encode_response = True
+
+        # Check different paths
+        if path == "/":
+            response = "HTTP/1.1 200 OK\r\n\r\n"
+
+        elif path.startswith("/echo/"):
+            # Send a response
+            response_data = path.split("/echo/")[1]
+            # Check if there is an Accept-Encoding header
+            extra_headers = None
+            if "gzip" in headers_dict.get("accept-encoding", "").lower().split(", "):
+                extra_headers = {"Content-Encoding": "gzip"}
+            response = get_text_plain_ok_response(
+                response_data, extra_headers=extra_headers
+            )
+        elif path.startswith("/user-agent"):
+            response_data = headers_dict.get("user-agent", "")
+            response = get_text_plain_ok_response(response_data)
+        elif path.startswith("/files/") and method == "GET":
+            file_route = os.path.join(directory_value, path.split("/files/")[1])
+            print("File route:", file_route)
+            if os.path.exists(file_route):
+                print("File exists")
+                file_bytes = open(file_route, "rb").read()
+                response = (
+                    "HTTP/1.1 200 OK\r\n"
+                    "Content-Type: application/octet-stream\r\n"
+                    f"Content-Length: {len(file_bytes)}\r\n"
+                    "\r\n"
+                ).encode()
+                response += file_bytes
+                encode_response = False
+        elif path.startswith("/files/") and method == "POST":
+            file_route = os.path.join(directory_value, path.split("/files/")[1])
+            print("File route:", file_route)
+            file_bytes = body.encode()
+            with open(file_route, "wb") as file:
+                file.write(file_bytes)
+            response = "HTTP/1.1 201 Created\r\n\r\n"
+        print(f"Response: {response}")
+        client_socket.sendall(response.encode() if encode_response else response)
+        client_socket.close()
+        # Close the loop after one request
+        # break
 if __name__ == "__main__":
     main()
