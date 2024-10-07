@@ -35,7 +35,7 @@ def main():
         request_line = data.split("\r\n")[0]
         method = request_line.split(" ")[0]
         path = request_line.split(" ")[1]
-        # Obtain the headers
+        # Obtain the headersas
         headers = data.split("\r\n")[1:-2]
         headers_dict = {
             header.split(": ")[0].lower(): header.split(": ")[1]
