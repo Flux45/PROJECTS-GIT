@@ -1,84 +1,145 @@
-import socket
-import threading
 import gzip
-from sys import argv
-
-
-def handle_request(conn, addr):
-    data = conn.recv(1024).decode("utf-8")
-    request_lines = data.split("\r\n")
-    request_line = request_lines[0]
-    method, path, _ = request_line.split(" ")
-    headers = request_lines[1:-2]
-    body = request_lines[-1]
-    user_agent = ""
-    accept_encoding = ""
-
-    for header in headers:
-        if header.startswith("User-Agent:"):
-            user_agent = header.split(": ")[1]
-        if header.startswith("Accept-Encoding:"):
-            accept_encoding = header.split(": ")[1]
-
-    if path == "/":
-        response = "HTTP/1.1 200 OK\r\n\r\n"
-
-    elif path == "/user-agent":
-        response = f"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: {len(user_agent)}\r\n\r\n{user_agent}\r\n"
-
-    elif "/files" in path:
-        directory = argv[2]
-        filename = path.split("/files/")[1]
-
-        if method == "POST":
-            try:
-                with open(f"{directory}/{filename}", "w") as f:
-                    f.write(body)
-                response = "HTTP/1.1 201 Created\r\n\r\n"
-            except Exception as e:
-                response = "HTTP/1.1 404 Not Found\r\n\r\n"
-
-        elif method == "GET":
-            try:
-                with open(f"{directory}/{filename}", "rb") as f:
-                    content = f.read()
-                    response = f"HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: {len(content)}\r\n\r\n".encode()
-                    response += content
-            except FileNotFoundError:
-                response = "HTTP/1.1 404 Not Found\r\n\r\n"
-            conn.sendall(response.encode())
-            conn.close()
-            return
-
-    elif path.startswith("/echo"):
-        message = path.split("/echo/")[1]
-        response_body = message
-        headers = "Content-Type: text/plain\r\n"
-
-        if "gzip" in accept_encoding:
-            compressed_body = gzip.compress(response_body.encode())
-            headers += f"Content-Encoding: gzip\r\nContent-Length: {len(compressed_body)}\r\n\r\n"
-            response = f"HTTP/1.1 200 OK\r\n{headers}".encode() + compressed_body
-        else:
-            headers += f"Content-Length: {len(response_body)}\r\n\r\n"
-            response = f"HTTP/1.1 200 OK\r\n{headers}{response_body}\r\n".encode()
-
+import pathlib
+import socket
+import sys
+import threading
+import types
+from collections.abc import Generator
+from app.entities import Request, Response, ResponseGenerator
+from app.utils import read_request
+def process(sock: socket.socket) -> None:
+    request = read_request(sock)
+    if request.target == "/":
+        response = Response()  # HTTP/1.1 200 OK\r\n\r\n
+    elif request.target.startswith("/echo/"):
+        body = request.target[6:].encode()
+        response = Response(body=body)
+        accept_encodings = (
+            request.headers["Accept-Encoding"].split(", ")
+            if request.headers.get("Accept-Encoding")
+            else []
+        )
+        if accept_encodings and "gzip" in accept_encodings:
+            response.headers["Content-Encoding"] = "gzip"
+            response.body = gzip.compress(body)
+    elif request.target.startswith("/user-agent"):
+        body = (request.headers.get("User-Agent") or "").encode()
+        headers = {"Content-Type": "text/plain", "Content-Length": len(body)}
+        response = Response(headers=headers, body=body)
+    elif request.target.startswith("/files/") and request.method.lower() == "get":
+        filepath = pathlib.Path(sys.argv[2]) / request.target[7:]
+        response = Response.from_file(filepath)
+    elif request.target.startswith("/files/") and request.method.lower() == "post":
+        filepath = pathlib.Path(sys.argv[2]) / request.target[7:]
+        with open(filepath, "wb") as file:
+            file.write(request.body)
+        response = Response(status_code=201, status_text="Created")
     else:
-        response = "HTTP/1.1 404 Not Found\r\n\r\n"
-
-    conn.sendall(response.encode() if isinstance(response, str) else response)
-    conn.close()
-
-
+        response = Response(
+            status_code=404, status_text="Not Found"
+        )  #  HTTP/1.1 404 Not Found\r\n\r\n
+    if isinstance(response, Response):
+        sock.send(response.to_raw())
+    elif isinstance(response, types.GeneratorType):
+        for data in response:
+            sock.send(data)
+    sock.close()
 def main():
-    server_socket = socket.create_server(("localhost", 4221))
+    server_socket = socket.create_server(("localhost", 4221), reuse_port=True)
     while True:
-        conn, addr = server_socket.accept()
-        threading.Thread(target=handle_request, args=(conn, addr)).start()
-
-
+        sock, addr_info = server_socket.accept()
+        threading.Thread(target=process, args=(sock,)).start()
 if __name__ == "__main__":
     main()
+
+
+
+
+
+
+
+
+# import socket
+# import threading
+# import gzip
+# from sys import argv
+#
+#
+# def handle_request(conn, addr):
+#     data = conn.recv(1024).decode("utf-8")
+#     request_lines = data.split("\r\n")
+#     request_line = request_lines[0]
+#     method, path, _ = request_line.split(" ")
+#     headers = request_lines[1:-2]
+#     body = request_lines[-1]
+#     user_agent = ""
+#     accept_encoding = ""
+#
+#     for header in headers:
+#         if header.startswith("User-Agent:"):
+#             user_agent = header.split(": ")[1]
+#         if header.startswith("Accept-Encoding:"):
+#             accept_encoding = header.split(": ")[1]
+#
+#     if path == "/":
+#         response = "HTTP/1.1 200 OK\r\n\r\n"
+#
+#     elif path == "/user-agent":
+#         response = f"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: {len(user_agent)}\r\n\r\n{user_agent}\r\n"
+#
+#     elif "/files" in path:
+#         directory = argv[2]
+#         filename = path.split("/files/")[1]
+#
+#         if method == "POST":
+#             try:
+#                 with open(f"{directory}/{filename}", "w") as f:
+#                     f.write(body)
+#                 response = "HTTP/1.1 201 Created\r\n\r\n"
+#             except Exception as e:
+#                 response = "HTTP/1.1 404 Not Found\r\n\r\n"
+#
+#         elif method == "GET":
+#             try:
+#                 with open(f"{directory}/{filename}", "rb") as f:
+#                     content = f.read()
+#                     response = f"HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: {len(content)}\r\n\r\n".encode()
+#                     response += content
+#             except FileNotFoundError:
+#                 response = "HTTP/1.1 404 Not Found\r\n\r\n"
+#             conn.sendall(response)
+#             conn.close()
+#             return
+#
+#     elif path.startswith("/echo"):
+#         message = path.split("/echo/")[1]
+#         response_body = message
+#         headers = "Content-Type: text/plain\r\n"
+#
+#         if "gzip" in accept_encoding:
+#             compressed_body = gzip.compress(response_body.encode())
+#             headers += f"Content-Encoding: gzip\r\nContent-Length: {len(compressed_body)}\r\n\r\n"
+#             response = f"HTTP/1.1 200 OK\r\n{headers}".encode() + compressed_body
+#         else:
+#             headers += f"Content-Length: {len(response_body)}\r\n\r\n"
+#             response = f"HTTP/1.1 200 OK\r\n{headers}{response_body}\r\n".encode()
+#
+#     else:
+#         response = "HTTP/1.1 404 Not Found\r\n\r\n"
+#
+#     conn.sendall(response.encode() if isinstance(response, str) else response)
+#     conn.close()
+#
+#
+# def main():
+#     server_socket = socket.create_server(("localhost", 4221))
+#     while True:
+#         conn, addr = server_socket.accept()
+#         threading.Thread(target=handle_request, args=(conn, addr)).start()
+#
+#
+# if __name__ == "__main__":
+#     main()
 
 
 
