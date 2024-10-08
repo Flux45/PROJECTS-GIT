@@ -46,7 +46,7 @@ def handle_request(conn, addr):
                     response += content
             except FileNotFoundError:
                 response = "HTTP/1.1 404 Not Found\r\n\r\n"
-            conn.sendall(response)
+            conn.sendall(response.encode())
             conn.close()
             return
 
